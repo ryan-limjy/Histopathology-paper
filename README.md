@@ -84,6 +84,8 @@ The included [dummy dataset](data/dummy_dataset.csv) mimics the structure of the
 | `OS_time`    | Overall survival time (years)                    |
 | `death`      | 10 years survival (1 = death, 0 = alive)              |
 | `trunc_OS`   | 10 years survival time (years, capped at 10)   |
+| `n_char`   | Number of characters in freetext |
+| `n_benign`   | Number of benign features investigated present |
 
 
 ### Preview of dummy dataset
