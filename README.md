@@ -60,8 +60,7 @@ The included R scripts demonstrate:
 
 ## Dummy Dataset
 
-The included [dummy dataset](data/dummy_dataset.csv) mimics the structure of the real data and is used for illustrative purposes only. Some scripts (e.g., those involving sampling for accuracy checks) which assume a larger dataset will not work as intended with this dataset.
-
+The included [dummy dataset](data/dummy_dataset.csv) mimics the structure of the real data and is used for illustrative purposes only. Most, if not all scripts above, will produce errors or fail to yield meaningful results due to the small sample size. 
 
 ### Variables include:
 
@@ -99,7 +98,7 @@ The below table is meant to be a visual representation and only a subset of vari
 | 003 | False | True  | False | positive  | Stage 3 | 52  | 1      | 2.9     | 1      |
 | 006 | True  | False | True  | unknown   | Stage 3 | 59  | 1      | 1.8     | 1      |
 
-To import the dataset with compatibility to the R scripts:
+To import the dataset into R:
 
 ```r
 df <- read.csv("data/dummy_dataset.csv")
