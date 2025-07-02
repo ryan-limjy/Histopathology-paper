@@ -60,7 +60,8 @@ The included R scripts demonstrate:
 
 ## Dummy Dataset
 
-The included [dummy dataset](data/dummy_dataset.csv) mimics the structure of the real data and is used for illustrative purposes only. 
+The included [dummy dataset](data/dummy_dataset.csv) mimics the structure of the real data and is used for illustrative purposes only. Some scripts (e.g., those involving sampling for accuracy checks) which assume a larger dataset will not work as intended with this dataset.
+
 
 ### Variables include:
 
