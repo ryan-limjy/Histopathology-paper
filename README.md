@@ -7,13 +7,13 @@ This repository contains selected R scripts and a dummy dataset to illustrate ho
 ## 📂 Repository Contents
 ```text
 api_prompts/
-├── prompts/              # Contains .txt files with prompts used for LLM extraction
+├── prompts/                  # Contains .txt files with prompts used for LLM extraction
 │   ├── API1.txt
 │   ├── API2.txt
 │   ├── API3.txt
 │   ├── API4.txt
 │   └── API5.txt
-├── scripts/              # Shell scripts used to run extraction jobs in parallel
+├── scripts/                  # Shell scripts used to run extraction jobs in parallel
 │   ├── API1_parallel.sh
 │   ├── API2_parallel.sh
 │   ├── API3_parallel.sh
@@ -21,8 +21,8 @@ api_prompts/
 │   └── API5_parallel.sh
 
 scripts/
-├── odds_hazard_ratio.R              # Odds/hazard ratio script
-├── accuracy.R             # API accuracy script
+├── odds_hazard_ratio.R       # Odds/hazard ratio script
+├── accuracy.R                # API accuracy script
 └── all_others.R              # Clustering, KM plots and logistic/Poisson regression script
 
 data/
