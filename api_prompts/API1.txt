@@ -1,0 +1,65 @@
+import openai
+import json
+import argparse
+import csv
+
+# Set up OpenAI API key
+openai.api_key = xxx
+
+    
+MODEL = "gpt-4-turbo"
+TEMPERATURE = 0
+
+PROMPT_TEMPLATE = """You are given a pathology report. Your task is to determine:
+1. Whether it describes breast tissue (answer Yes or No).
+2. If Yes, quote the exact supporting sentence or phrase from the report.
+
+Respond in this format:
+Breast Tissue: <Yes/No>
+Supporting Quote: <quote or 'N/A' if not applicable>
+
+Text:
+{text}
+"""
+
+def analyze_report(report_text):
+    prompt = PROMPT_TEMPLATE.format(text=report_text)
+    response = openai.ChatCompletion.create(
+        model=MODEL,
+        temperature=TEMPERATURE,
+        messages=[{"role": "user", "content": prompt}]
+    )
+    content = response['choices'][0]['message']['content']
+    
+    # Parse the result
+    lines = content.splitlines()
+    breast_tissue = "No"
+    quote = "N/A"
+    for line in lines:
+        if line.startswith("Breast Tissue:"):
+            breast_tissue = line.split(":", 1)[1].strip()
+        elif line.startswith("Supporting Quote:"):
+            quote = line.split(":", 1)[1].strip()
+    return breast_tissue, quote
+
+def main(input_file, output_file):
+    with open(input_file, "r", encoding="utf-8") as f_in, open(output_file, "w", newline="", encoding="utf-8") as f_out:
+        reader = csv.reader(f_in, delimiter="\t")
+        writer = csv.writer(f_out, delimiter="\t")
+        writer.writerow(["ID", "Breast Tissue", "Supporting Quote"])
+
+        for row in reader:
+            if len(row) < 2:
+                continue
+            id_ = row[0].strip()
+            text = row[1].strip()
+            breast, quote = analyze_report(text)
+            writer.writerow([id_, breast, quote])
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="Determine if pathology reports are about breast tissue.")
+    parser.add_argument("--input", required=True, help="Input text file (tab-delimited)")
+    parser.add_argument("--output", required=True, help="Output TSV file")
+    args = parser.parse_args()
+
+    main(args.input, args.output)

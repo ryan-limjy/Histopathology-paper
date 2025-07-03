@@ -1,0 +1,100 @@
+import openai
+import json
+import csv
+import argparse
+import re
+
+# Set up OpenAI API key
+openai.api_key = xxx
+
+MODEL = "gpt-4-turbo"
+TEMPERATURE = 0
+
+
+PROMPT_TEMPLATE = """You are a medical data analyst. Your task is to identify specific benign proliferative breast lesions from the pathology report.
+
+The benign proliferative lesions to detect are:
+- UDH: Usual Ductal Hyperplasia (may also appear as "usual ductal hyperplasia" or "UDH")
+- Sclerosing Adenosis
+- Radial Scar or Complex Sclerosing Lesion
+- Intraductal Papilloma
+- Fibroadenoma
+
+Please check all parts of the report carefully—including diagnosis, gross description, and microscopic description. Lesions may appear in abbreviated form, embedded in longer descriptions, or be implied (e.g., 'suggesting a fibroadenoma').
+
+Return the result in this exact JSON format:
+{{
+  "UDH_present": true or false,
+  "SclerosingAdenosis_present": true or false,
+  "RadialScar_present": true or false,
+  "IntraductalPapilloma_present": true or false,
+  "Fibroadenoma_present": true or false
+}}
+
+Text:
+{text}
+"""
+
+def analyze_report(report_text):
+    prompt = PROMPT_TEMPLATE.format(text=report_text)
+
+    try:
+        response = openai.ChatCompletion.create(
+            model=MODEL,
+            temperature=TEMPERATURE,
+            messages=[{"role": "user", "content": prompt}]
+        )
+        content = response['choices'][0]['message']['content']
+
+        match = re.search(r'```json\n(.*?)\n```', content, re.DOTALL)
+        if match:
+            json_content = match.group(1).strip()
+            try:
+                result = json.loads(json_content)
+                return (
+                    result.get("UDH_present", False),
+                    result.get("SclerosingAdenosis_present", False),
+                    result.get("RadialScar_present", False),
+                    result.get("IntraductalPapilloma_present", False),
+                    result.get("Fibroadenoma_present", False)
+                )
+            except json.JSONDecodeError:
+                return (False,) * 5
+        else:
+            return (False,) * 5
+    except Exception:
+        return (False,) * 5
+
+def main(input_file, output_file):
+    with open(input_file, "r", encoding="utf-8") as f_in, open(output_file, "w", newline="", encoding="utf-8") as f_out:
+        reader = csv.reader(f_in, delimiter="\t")
+        writer = csv.writer(f_out, delimiter="\t")
+        writer.writerow([
+            "ID",
+            "UDH Present",
+            "Sclerosing Adenosis Present",
+            "Radial Scar Present",
+            "Intraductal Papilloma Present",
+            "Fibroadenoma Present"
+        ])
+
+        for row in reader:
+            if len(row) < 2:
+                continue
+            id_ = row[0].strip()
+            text = row[1].strip()
+
+            result = analyze_report(text)
+
+            writer.writerow([id_, *result])
+
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="Extract specimen type and malignancy status from pathology reports.")
+    parser.add_argument("--input", required=True, help="Input text file (tab-delimited)")
+    parser.add_argument("--output", required=True, help="Output TSV file")
+    args = parser.parse_args()
+
+    # Run the main function to process the input file and write the results to the output file
+    main(args.input, args.output)

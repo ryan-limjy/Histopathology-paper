@@ -1,0 +1,105 @@
+import openai
+import json
+import csv
+import argparse
+import re
+
+# Set up OpenAI API key
+openai.api_key = xxx
+
+MODEL = "gpt-4-turbo"
+TEMPERATURE = 0
+
+
+PROMPT_TEMPLATE = """You are a medical data analyst. Your task is to identify specific non-proliferative benign breast lesions from the pathology report.
+
+The benign non-proliferative lesions to detect are:
+- Cyst (may appear as "cyst" or "cysts")
+- Apocrine Metaplasia
+- Columnar Cell Change (may appear as "columnar cell change" or "CCC")
+- Fibrocystic Change
+- Calcification (may appear as "calcification" or "microcalcification")
+- Flat Epithelial Atypia (may appear as "Flat Epithelial Atypia" or "FEA")
+
+Please check all parts of the report carefully—including diagnosis, gross description, and microscopic description. Lesions may appear in abbreviated form, embedded in longer descriptions, or be implied (e.g., 'features consistent with fibrocystic change').
+
+Return the result in this exact JSON format:
+{{
+  "Cyst_present": true or false,
+  "ApocrineMetaplasia_present": true or false,
+  "ColumnarCellChange_present": true or false,
+  "FibrocysticChange_present": true or false,
+  "Calcification_present": true or false,
+  "FlatEpithelialAtypia_present": true or false
+}}
+
+After the JSON, explain briefly how you identified each lesion (even if marked false). Keep each explanation to one sentence.
+
+
+Text:
+{text}
+"""
+
+def analyze_report(report_text):
+    prompt = PROMPT_TEMPLATE.format(text=report_text)
+
+    try:
+        response = openai.ChatCompletion.create(
+            model=MODEL,
+            temperature=TEMPERATURE,
+            messages=[{"role": "user", "content": prompt}]
+        )
+        content = response['choices'][0]['message']['content']
+
+        match = re.search(r'```json\n(.*?)\n```', content, re.DOTALL)
+        if match:
+            json_content = match.group(1).strip()
+            try:
+                result = json.loads(json_content)
+                return (
+                    result.get("Cyst_present", False),
+                    result.get("ApocrineMetaplasia_present", False),
+                    result.get("ColumnarCellChange_present", False),
+                    result.get("FibrocysticChange_present", False),
+                    result.get("Calcification_present", False),
+                    result.get("FlatEpithelialAtypia_present", False)
+                )
+            except json.JSONDecodeError:
+                return (False,) * 6
+        else:
+            return (False,) * 6
+    except Exception:
+        return (False,) * 6
+
+def main(input_file, output_file):
+    with open(input_file, "r", encoding="utf-8") as f_in, open(output_file, "w", newline="", encoding="utf-8") as f_out:
+        reader = csv.reader(f_in, delimiter="\t")
+        writer = csv.writer(f_out, delimiter="\t")
+        writer.writerow([
+            "ID",
+            "Cyst Present",
+            "Apocrine Metaplasia Present",
+            "Columnar Cell Change Present",
+            "Fibrocystic Change Present",
+            "Calcification Present",
+            "Flat Epithelial Atypia Present"
+        ])
+
+        for row in reader:
+            if len(row) < 2:
+                continue
+            id_ = row[0].strip()
+            text = row[1].strip()
+
+            result = analyze_report(text)
+
+            writer.writerow([id_, *result])
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="Extract specimen type and malignancy status from pathology reports.")
+    parser.add_argument("--input", required=True, help="Input text file (tab-delimited)")
+    parser.add_argument("--output", required=True, help="Output TSV file")
+    args = parser.parse_args()
+
+    # Run the main function to process the input file and write the results to the output file
+    main(args.input, args.output)

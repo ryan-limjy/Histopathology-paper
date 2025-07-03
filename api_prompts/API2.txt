@@ -1,0 +1,82 @@
+import openai
+import json
+import argparse
+import csv
+
+# Set up OpenAI API key
+openai.api_key = xxx
+
+MODEL = "gpt-4-turbo"
+TEMPERATURE = 0
+
+
+PROMPT_TEMPLATE = """You are a medical data analyst. Your task is to extract the type of specimen and whether malignancy is present from a free-text pathology report.
+
+Return the result in this exact JSON format, with no explanation:
+{{
+  "malignancy_present": "Yes" or "No",
+  "malignancy_quote": "short quote from the report that supports this classification",
+  "specimen_type": "type",
+  "specimen_quote": "short quote from the report that supports this classification"
+}}
+
+Specimen type must be one of the following if mentioned:
+- "Excision" (e.g., excision, lumpectomy, wide local excision, mastectomy)
+- "VAB" (Vacuum-Assisted Biopsy)
+- "CNB" (Core Needle Biopsy)
+- "FNA" (Fine-Needle Aspiration)
+- "Incisional Biopsy"
+- "Skin Punch Biopsy"
+- "Sentinel Lymph Node Biopsy"
+- "Unknown" if not clearly stated
+
+"malignancy_present" must be exactly "Yes" or "No" (case-sensitive). Do not return any other values.
+
+Text:
+{text}
+"""
+
+def analyze_report(report_text):
+    prompt = PROMPT_TEMPLATE.format(text=report_text)
+    response = openai.ChatCompletion.create(
+        model=MODEL,
+        temperature=TEMPERATURE,
+        messages=[{"role": "user", "content": prompt}]
+    )
+    content = response['choices'][0]['message']['content']
+
+    try:
+        result = json.loads(content)
+        malignancy_present = result.get("malignancy_present", "No")
+        malignancy_quote = result.get("malignancy_quote", "")
+        specimen_type = result.get("specimen_type", "Unknown")
+        specimen_quote = result.get("specimen_quote", "")
+    except json.JSONDecodeError:
+        malignancy_present = "No"
+        malignancy_quote = ""
+        specimen_type = "Unknown"
+        specimen_quote = ""
+
+    return malignancy_present, malignancy_quote, specimen_type, specimen_quote
+
+def main(input_file, output_file):
+    with open(input_file, "r", encoding="utf-8") as f_in, open(output_file, "w", newline="", encoding="utf-8") as f_out:
+        reader = csv.reader(f_in, delimiter="\t")
+        writer = csv.writer(f_out, delimiter="\t")
+        writer.writerow(["ID", "Malignancy Present", "Malignancy Quote", "Specimen Type", "Specimen Quote"])
+
+        for row in reader:
+            if len(row) < 2:
+                continue
+            id_ = row[0].strip()
+            text = row[1].strip()
+            malignancy_present, malignancy_quote, specimen_type, specimen_quote = analyze_report(text)
+            writer.writerow([id_, malignancy_present, malignancy_quote, specimen_type, specimen_quote])
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="Extract specimen type and malignancy status from pathology reports.")
+    parser.add_argument("--input", required=True, help="Input text file (tab-delimited)")
+    parser.add_argument("--output", required=True, help="Output TSV file")
+    args = parser.parse_args()
+
+    main(args.input, args.output)

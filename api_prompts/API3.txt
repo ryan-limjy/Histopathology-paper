@@ -1,0 +1,114 @@
+import openai
+import json
+import csv
+import argparse
+import re
+
+# Set up OpenAI API key
+openai.api_key = xxx
+
+MODEL = "gpt-4-turbo"
+TEMPERATURE = 0
+
+
+PROMPT_TEMPLATE = """You are a medical data analyst. Your task is to identify specific pre-invasive breast lesions and the side of the body (left, right, bilateral, or unknown) from the pathology report.
+
+The lesions to detect are:
+- DCIS: Ductal Carcinoma In Situ
+- LCIS: Lobular Carcinoma In Situ
+- ADH: Atypical Ductal Hyperplasia
+- ALH: Atypical Lobular Hyperplasia
+
+Please check all parts of the report carefully—including diagnosis, gross description, and microscopic description. Lesions may appear in abbreviated form (e.g., "dcis", "DCIS", "Ductal Carcinoma In Situ") or in more complex descriptions. Ensure you capture the term **DCIS** wherever it appears, even if it's implied indirectly or embedded in the description (e.g., "high grade dcis with solid papillary cribriform and comedo patterns" should still be marked as **DCIS**).
+
+If **DCIS** (or any other lesion) appears in the report, mark it as present.
+
+Return the result in this exact JSON format:
+{{
+  "DCIS_present": true or false,
+  "LCIS_present": true or false,
+  "ADH_present": true or false,
+  "ALH_present": true or false,
+  "side": "Left" | "Right" | "Bilateral" | "Unknown"
+}}
+
+Text:
+{text}
+"""
+
+def analyze_report(report_text):
+    prompt = PROMPT_TEMPLATE.format(text=report_text)
+
+    try:
+        # Make API call
+        response = openai.ChatCompletion.create(
+            model=MODEL,
+            temperature=TEMPERATURE,
+            messages=[{"role": "user", "content": prompt}]
+        )
+        content = response['choices'][0]['message']['content']
+        #print(f"Response from OpenAI: {content}")  # Debugging: Check the raw API response
+
+        # Use a regular expression to isolate the JSON part of the response
+        match = re.search(r'```json\n(.*?)\n```', content, re.DOTALL)
+        if match:
+            json_content = match.group(1).strip()  # Extracted JSON content
+            #print(f"Extracted JSON content: {json_content}")  # Debugging: Check the extracted JSON
+
+            try:
+                result = json.loads(json_content)
+                #print(f"Parsed JSON result: {result}")  # Debugging: Check parsed JSON response
+                return (
+                    result.get("DCIS_present", False),
+                    result.get("LCIS_present", False),
+                    result.get("ADH_present", False),
+                    result.get("ALH_present", False),
+                    result.get("side", "Unknown")
+                )
+            except json.JSONDecodeError as e:
+                #print(f"Error parsing JSON: {e}")
+                return (False, False, False, False, "Unknown")
+        else:
+            #print("No valid JSON found in the response.")
+            return (False, False, False, False, "Unknown")
+    
+    except Exception as e:
+        #print(f"Error during API call: {e}")
+        return (False, False, False, False, "Unknown")
+
+def main(input_file, output_file):
+    with open(input_file, "r", encoding="utf-8") as f_in, open(output_file, "w", newline="", encoding="utf-8") as f_out:
+        reader = csv.reader(f_in, delimiter="\t")
+        writer = csv.writer(f_out, delimiter="\t")
+        writer.writerow([
+            "ID",
+            "DCIS Present",
+            "LCIS Present",
+            "ADH Present",
+            "ALH Present",
+            "Side"
+        ])
+
+        for row in reader:
+            if len(row) < 2:
+                continue
+            id_ = row[0].strip()
+            text = row[1].strip()
+
+            # Call analyze_report and capture the result
+            result = analyze_report(text)
+
+            # Debugging: Print result to verify
+            #print(f"Result for {id_}: {result}")
+
+            # Write the ID and the result (DCIS, LCIS, ADH, ALH, Side) to the output file
+            writer.writerow([id_, *result])
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="Extract specimen type and malignancy status from pathology reports.")
+    parser.add_argument("--input", required=True, help="Input text file (tab-delimited)")
+    parser.add_argument("--output", required=True, help="Output TSV file")
+    args = parser.parse_args()
+
+    # Run the main function to process the input file and write the results to the output file
+    main(args.input, args.output)
