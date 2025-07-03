@@ -21,8 +21,8 @@ api_prompts/
 │   └── API5_parallel.sh
 
 scripts/
-├── Odds ratio.R              # Odds/hazard ratio script
-├── Sensitivity.R             # API accuracy script
+├── odds_hazard_ratio.R              # Odds/hazard ratio script
+├── accuracy.R             # API accuracy script
 └── all_others.R              # Clustering, KM plots and logistic/Poisson regression script
 
 data/
@@ -52,8 +52,8 @@ These outputs were post-processed and validated before forming the basis of the 
 All regression models were fit using R. Odds ratios were computed using multinomial logistic regression (`nnet::multinom`), with adjustments for demographic and clinical covariates. Hierarchical clustering was performed using Pearson correlation and Ward’s method. Survival analysis was conducted using `survival::survfit` and visualized with `survminer::ggsurvplot`.
 
 The included R scripts demonstrate:
-- [How odds/hazard ratios were computed](scripts/Odds_ratio.R)
-- [How API accuracy was calculated](scripts/Sensitivity.R)
+- [How odds/hazard ratios were computed](scripts/odds_hazard_ratio.R)
+- [How API accuracy was calculated](scripts/accuracy.R)
 - [All other plots including clustering, KM plots, and logistic/Poisson regression](scripts/all_others.R)
 
 ---
