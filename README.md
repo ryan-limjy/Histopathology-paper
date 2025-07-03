@@ -4,7 +4,7 @@ This repository contains selected R scripts and a dummy dataset to illustrate ho
 
 ---
 
-## 📂 Repository Contents
+## Repository Contents
 ```text
 api_prompts/
 ├── prompts/                  # Contains .txt files with prompts used for LLM extraction
@@ -40,8 +40,8 @@ Before any statistical analysis, key variables were extracted from unstructured 
 
 Due to iterative filtering and model constraints, the extraction was run in multiple batches using parallel processing. The relevant files have been organized into two subfolders:
 
-📁 [`api_prompts/prompts/`](api_prompts/prompts/) – Contains the actual prompt `.txt` files  
-📁 [`api_prompts/scripts/`](api_prompts/scripts/) – Shell scripts used to run batch jobs in parallel
+  [`api_prompts/prompts/`](api_prompts/prompts/) – Contains the actual prompt `.txt` files  
+  [`api_prompts/scripts/`](api_prompts/scripts/) – Shell scripts used to run batch jobs in parallel
 
 These outputs were post-processed and validated before forming the basis of the structured dataset used for downstream analysis (see [Dummy dataset](data/dummy_dataset.csv)).
 
